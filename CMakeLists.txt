@@ -194,3 +194,50 @@ endif()
 if(IOS_PLATFORM AND IOS_DEMO)
     add_subdirectory(ios)
 endif()
+
+# Create CMake exported targets
+
+# Do we need to provide support for non-GNULINUX platforms?
+set( NE10_EXPORT_CONFIG_DIRECTORY lib/cmake/Ne10 )
+
+# Install exported targets as config files
+# for use from install tree
+install(EXPORT Ne10_exports
+  NAMESPACE Ne10::
+  FILE Ne10_exports.cmake
+  DESTINATION ${NE10_EXPORT_CONFIG_DIRECTORY}
+  )
+
+# Create config files for exported targets
+# for use from build tree
+export(EXPORT Ne10_exports
+  NAMESPACE Ne10::
+  FILE Ne10_exports.cmake
+  )
+
+# Install package config file
+# for use from install tree
+install(FILES ${CMAKE_BINARY_DIR}/Ne10Config.cmake
+  DESTINATION ${NE10_EXPORT_CONFIG_DIRECTORY} COMPONENT )
+
+# Copy package config file for use from build tree
+configure_file(Ne10Config.cmake.in
+  Ne10Config.cmake @ONLY)
+
+include(CMakePackageConfigHelpers)
+
+# Create package version file
+# Because there is only a single (major) version, assume that
+# future releases will be backwards compatible. 
+write_basic_package_version_file(Ne10Config-version.cmake
+  VERSION ${NE10_VERSION}
+  COMPATIBILITY AnyNewerVersion
+  # COMPATIBILITY SameMajorVersion # If major version increases break API compatibility. 
+  )
+
+# Install package version file
+install(FILES ${CMAKE_BINARY_DIR}/Ne10Config-version.cmake
+  DESTINATION ${NE10_EXPORT_CONFIG_DIRECTORY} )
+
+# Register package in user registry
+export(PACKAGE Ne10)

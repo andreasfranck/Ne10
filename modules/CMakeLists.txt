@@ -37,6 +37,13 @@ set(NE10_C_SRCS )
 set(NE10_INTRINSIC_SRCS )
 set(NE10_NEON_SRCS )
 
+set( NE10_PUBLIC_HEADERS
+  ${PROJECT_SOURCE_DIR}/inc/NE10.h
+  ${PROJECT_SOURCE_DIR}/inc/NE10_macros.h
+  ${PROJECT_SOURCE_DIR}/inc/NE10_math.h
+  ${PROJECT_SOURCE_DIR}/inc/NE10_types.h
+  )
+
 #Tell CMake these files need to go to the C compiler
 function(set_file_to_c files)
   set(FLAGS
@@ -127,6 +134,9 @@ if(NE10_ENABLE_MATH)
       foreach(intrinsic_file ${NE10_MATH_INTRINSIC_SRCS})
         set_source_files_properties(${intrinsic_file} PROPERTIES COMPILE_FLAGS "-mfpu=neon" )
       endforeach(intrinsic_file)
+
+      # Add the header file to the set of public headers.
+      list( APPEND NE10_PUBLIC_HEADERS ${PROJECT_SOURCE_DIR}/inc/NE10_math.h )
     endif()
 
     set(NE10_MATH_NEON_SRCS
@@ -262,6 +272,9 @@ endif(IOS_PLATFORM)
     else(IOS_PLATFORM)
       set(NE10_NEON_SRCS ${NE10_NEON_SRCS} ${NE10_DSP_NEON_SRCS})
     endif(IOS_PLATFORM)
+
+    # Add the header file to the set of public headers.
+    list( APPEND NE10_PUBLIC_HEADERS ${PROJECT_SOURCE_DIR}/inc/NE10_dsp.h )
 endif()
 
 if(NE10_ENABLE_IMGPROC)
@@ -312,6 +325,10 @@ endif(IOS_PLATFORM)
     else(IOS_PLATFORM)
       set(NE10_NEON_SRCS ${NE10_NEON_SRCS} ${NE10_IMGPROC_NEON_SRCS})
     endif(IOS_PLATFORM)
+
+    # Add the header file to the set of public headers.
+    list( APPEND NE10_PUBLIC_HEADERS ${PROJECT_SOURCE_DIR}/inc/NE10_imgproc.h )
+
 endif(NE10_ENABLE_IMGPROC)
 
 if(NE10_ENABLE_PHYSICS)
@@ -358,6 +375,9 @@ endif(IOS_PLATFORM)
     else(IOS_PLATFORM)
       set(NE10_NEON_SRCS ${NE10_NEON_SRCS} ${NE10_PHYSICS_NEON_SRCS})
     endif(IOS_PLATFORM)
+
+        # Add the header file to the set of public headers.
+    list( APPEND NE10_PUBLIC_HEADERS ${PROJECT_SOURCE_DIR}/inc/NE10_physics.h )
 endif(NE10_ENABLE_PHYSICS)
 
 include_directories (
@@ -375,11 +395,25 @@ if(NE10_BUILD_STATIC OR ANDROID_PLATFORM OR IOS_DEMO)
     set_target_properties(NE10 PROPERTIES
         CLEAN_DIRECT_OUTPUT 1
         VERSION ${NE10_VERSION}
+	PUBLIC_HEADER "${NE10_PUBLIC_HEADERS}"
     )
 
     set_target_properties(NE10 PROPERTIES
         LINKER_LANGUAGE C
     )
+
+  # Define the public include directories that are added if the
+  # exported target is used either from the build tree or an installed location.
+  target_include_directories( NE10
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/inc>
+    $<INSTALL_INTERFACE:include/Ne10>
+  )
+
+  install(TARGETS NE10
+          EXPORT Ne10_exports
+          ARCHIVE DESTINATION lib
+	  PUBLIC_HEADER DESTINATION include/Ne10 )
 
   if(IOS_DEMO)
     install(TARGETS NE10
@@ -398,11 +432,27 @@ if(NE10_BUILD_SHARED)
 
     target_link_libraries(NE10_shared m)
 
+    # Define the public include directories that are added if the
+    # exported target is used either from the build tree or an
+    # installed location.
+    target_include_directories( NE10_shared
+      PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/inc>
+      $<INSTALL_INTERFACE:include/Ne10>
+    )
+
     set_target_properties(NE10_shared PROPERTIES
         OUTPUT_NAME "NE10"
         CLEAN_DIRECT_OUTPUT 1
         VERSION ${NE10_VERSION}
         LINKER_LANGUAGE C
+	PUBLIC_HEADER "${NE10_PUBLIC_HEADERS}"
+    )
+
+    install( TARGETS NE10_shared
+             EXPORT Ne10_exports
+             LIBRARY DESTINATION lib
+	     PUBLIC_HEADER DESTINATION include/Ne10
     )
 
     add_library( NE10_test SHARED
